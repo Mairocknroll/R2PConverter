@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33103.184
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsFormsApp2", "WindowsFormsApp2\WindowsFormsApp2.csproj", "{EBE5E3BE-3321-42CF-8B0E-E2EA6DB6BAEF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R2PConverter", "WindowsFormsApp2\R2PConverter.csproj", "{EBE5E3BE-3321-42CF-8B0E-E2EA6DB6BAEF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

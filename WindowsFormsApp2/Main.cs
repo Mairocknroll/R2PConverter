@@ -3,20 +3,13 @@ using CrystalDecisions.Shared;
 using System;
 using System.IO;
 using System.Windows.Forms;
-using System.Xml.Linq;
-using iTextSharp.text;
 using iTextSharp.text.pdf;
-using System.Runtime.Remoting.Contexts;
-using System.Reflection;
-using CrystalDecisions.ReportAppServer;
-using System.Web;
 using System.Runtime.InteropServices;
 using System.Drawing;
-using static System.Net.WebRequestMethods;
 
 namespace WindowsFormsApp2
 {
-    public partial class Form1 : Form
+    public partial class Main : Form
     {
         protected override CreateParams CreateParams
         {
@@ -32,20 +25,20 @@ namespace WindowsFormsApp2
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
 
-        [DllImportAttribute("user32.dll")]
+        [DllImport("user32.dll")]
         public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
-        [DllImportAttribute("user32.dll")]
+        [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
 
         string SourceFile = String.Empty;
         string DestinationFile = String.Empty;
         string MergedPDFfile = String.Empty;
-
+        string OPD_IPD = String.Empty;
         string defaultPath = "";
 
-        //bool ODBCMode = false;
+        bool ODBCMode = false;
 
-        public Form1()
+        public Main()
         {
             InitializeComponent();
         }
@@ -58,7 +51,7 @@ namespace WindowsFormsApp2
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Cannot get defualt path!");
+                MessageBox.Show("Cannot get defualt path! " + ex.Message.ToString());
             }
         }
 
@@ -66,19 +59,19 @@ namespace WindowsFormsApp2
         {
             if (SourceFile == String.Empty)
             {
-                MessageBox.Show("Please input RPT Source file!");
+                MessageBox.Show("Please input RPT Source file!", "RPT Source file", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (DestinationFile == String.Empty)
             {
-                MessageBox.Show("Please input PDF Source file!");
+                MessageBox.Show("Please input PDF Source file!", "PDF Source file", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (MergedPDFfile == String.Empty)
             {
-                MessageBox.Show("Please select Destination output file!");
+                MessageBox.Show("Please select Destination output file!", "Destination Path", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -86,52 +79,21 @@ namespace WindowsFormsApp2
 
             report.Load(SourceFile);
 
-
-            //Database database = report.Database;
-            //foreach (Table table in database.Tables)
-            //{
-            //    // Access the connection information for each table
-            //    TableLogOnInfo tableLogOnInfo = table.LogOnInfo;
-            //    ConnectionInfo connectionInfo = tableLogOnInfo.ConnectionInfo;
-            //    connectionInfo.ServerName = "TRAKCARE";     // Set the new server name
-            //    //connectionInfo.DatabaseName = "MAILIB";
-            //    connectionInfo.UserID = "sacrm";           // Set the new username
-            //    connectionInfo.Password = "sacrm";         // Set the new password
-            //    table.ApplyLogOnInfo(tableLogOnInfo);
-            //}
-
-            //report.Refresh();
-
-            //foreach (Table table in report.Database.Tables)
-            //{
-            //    table.LogOnInfo.ConnectionInfo = new ConnectionInfo();
-            //    table.ApplyLogOnInfo(table.LogOnInfo);
-            //}
-
-            // Save the modified report
-            //report.SaveAs(@"D:\YourReportWithoutDatabase.rpt");
-
-
-            // Loop through each table in the report and update the logon info
-
-            // if ODBC no need to setup servername
-
-            //if (ODBCMode)
-            //{
-            //    report.SetDatabaseLogon(txtUser.Text, txtPassword.Text);
-            //}
-            //else
-            //{
-            // report.SetDatabaseLogon(txtUser.Text, txtPassword.Text, txtDatabaseUrl.Text, txtDatabaseName.Text);
-            report.SetDatabaseLogon("sacrm", "sacrm");
-            //}
+            if (ODBCMode)
+            {
+                report.SetDatabaseLogon(txtUser.Text, txtPassword.Text);
+                //report.SetDatabaseLogon("ADDONESIGNATURE", "Ac#08n7H8@y38347n");
+            }
+            else
+            {
+                report.SetDatabaseLogon(txtUser.Text, txtPassword.Text, txtDatabaseUrl.Text, txtDatabaseName.Text);
+            }
 
             foreach (Control control in flwParameters.Controls)
             {
 
                 if (control is UserControl userControl)
                 {
-                    // Assuming your UserControl has a Label named "label1"
                     Label prmName = userControl.Controls["tableLayoutPanel1"].Controls["lblParamsName"] as Label;
                     TextBox prmValue = userControl.Controls["tableLayoutPanel1"].Controls["txtValue"] as TextBox;
 
@@ -156,7 +118,7 @@ namespace WindowsFormsApp2
 
 
             }
-            catch (CrystalDecisions.CrystalReports.Engine.LogOnException err)
+            catch (LogOnException err)
             {
                 lblMessage.Text = "Export error" + err.Message.ToString();
                 lblMessage.ForeColor = Color.Red;
@@ -173,7 +135,7 @@ namespace WindowsFormsApp2
             string originalPdfPath = pdfFilePath;
             string letterHeadPath = DestinationFile;
 
-            string mergedFileName = $"Merge_{DateTime.Now.ToString("ddMMyyyy_HHmmss")}";
+            string mergedFileName = $"{OPD_IPD}_Merge_{DateTime.Now.ToString("ddMMyyyy_HHmmss")}";
 
             try
             {
@@ -191,7 +153,14 @@ namespace WindowsFormsApp2
                         for (int i = 1; i <= contentReader.NumberOfPages; i++)
                         {
                             PdfContentByte contentPage = stamper.GetUnderContent(i);
-                            contentPage.AddTemplate(templatePage, -131, -161); // OPD Offset (-131, -161)
+                            if (SourceFile.Contains("IPD"))
+                            {
+                                contentPage.AddTemplate(templatePage, -131, -161); // IPD Offset (-131, -161)
+                            }
+                            else
+                            {
+                                contentPage.AddTemplate(templatePage, -175, -107); // OPD Offset (-175, -107)
+                            }
                             
                         }
 
@@ -235,6 +204,15 @@ namespace WindowsFormsApp2
                 lblFile1.Text = openFileDialog1.FileName;
                 SourceFile = openFileDialog1.FileName;
 
+                if (SourceFile.Contains("IPD"))
+                {
+                    OPD_IPD = "IPD";
+                }
+                else
+                {
+                    OPD_IPD = "OPD";
+                }
+
                 flwParameters.Controls.Clear();
 
                 ReportDocument report = new ReportDocument();
@@ -272,15 +250,12 @@ namespace WindowsFormsApp2
                             //prm.Dock = DockStyle.Top;
                         }
 
-                        //flwParameters.Size = new Size(572, 153);
-                        
-                        //flwParameters.AutoSize = false;
                         flwParameters.AutoScroll = true;
                         flwParameters.WrapContents = false;
                     }
                     catch (Exception paramsError)
-                    { 
-                        
+                    {
+                        MessageBox.Show("Reading parameters error : " + paramsError.ToString(), "Throw Exception Parameters", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
 
                     try
@@ -295,15 +270,8 @@ namespace WindowsFormsApp2
 
                             foreach (Table table in database.Tables)
                             {
-                                // Access the connection information for each table
                                 TableLogOnInfo tableLogOnInfo = table.LogOnInfo;
                                 ConnectionInfo connectionInfo = tableLogOnInfo.ConnectionInfo;
-
-                                //connectionInfo.ServerName = "172.18.71.13";
-                                //connectionInfo.DatabaseName = "MAILIB";
-                                //connectionInfo.UserID = "sacrm";
-                                //connectionInfo.Password = "sacrm";
-                                
 
                                 string serverName = connectionInfo.ServerName;
                                 string databaseName = connectionInfo.DatabaseName;
@@ -311,28 +279,32 @@ namespace WindowsFormsApp2
                                 string password = connectionInfo.Password;
                                 NameValuePair2 connectionStringType = (NameValuePair2)connectionInfo.LogonProperties[0];
 
-                                string tableName = table.Name;
-                                var fields = table.Fields;
 
+                                // -------- read fields name inside the table ----------
+                                //string tableName = table.Name;
+                                //var fields = table.Fields;
+                                //foreach (var field in fields)
+                                //{
+                                //    var fieldName = field;
+                                //}
+                                // -----------------------------------------------------
 
-                                foreach (var field in fields)
+                                if (connectionStringType.Name.ToString() == "DSN")
                                 {
-                                    // Get the name of the field (column)
-                                    var fieldName = field;
-
+                                    txtDatabaseUrl.Enabled = false;
+                                    txtDatabaseUrl.BackColor = SystemColors.Control;
+                                    txtDatabaseName.Enabled = false;
+                                    txtDatabaseName.BackColor = SystemColors.Control;
+                                    ODBCMode = true;
                                 }
-
-
-                                //if (connectionStringType.Name.ToString() == "DSN")
-                                //{
-                                //    txtDatabaseUrl.Enabled = false;
-                                //    txtDatabaseName.Enabled = false;
-                                //    ODBCMode = true;
-                                //}
-                                //else
-                                //{
-                                //    ODBCMode = false;
-                                //}
+                                else
+                                {
+                                    txtDatabaseUrl.Enabled = true;
+                                    txtDatabaseUrl.BackColor = Color.White;
+                                    txtDatabaseName.Enabled = true;
+                                    txtDatabaseName.BackColor = Color.White;
+                                    ODBCMode = false;
+                                }
                             }
 
                         }
@@ -342,8 +314,8 @@ namespace WindowsFormsApp2
                         }
                     }
                     catch (Exception DatabaseError)
-                    { 
-                        
+                    {
+                        MessageBox.Show("Reading database error : " + DatabaseError.ToString(), "Throw Exception Datasorce", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                    
 
